@@ -318,17 +318,20 @@ function isAllowedScore(n){
   if (n < 1 || n > 5) return false;
   // منع رقمين أو أكثر قبل الفاصلة (مثل 11، 10، 99)
   if (Math.floor(n) >= 10) return false;
-  // السماح فقط بخطوة 0.5 (1, 1.5, 2, 2.5 ... 5)
-  const twice = Math.round(n * 2);
-  if (Math.abs(n * 2 - twice) > 1e-9) return false;
+
+  // السماح بحد أقصى رقمين بعد الفاصلة
+  const scaled = n * 100;
+  if (Math.abs(scaled - Math.round(scaled)) > 1e-9) return false;
+
   return true;
 }
 
 function convertToActual(x){
   const s = normalizeNumberInput(x);
   if (!s) return null;
-  const n = Number(s);
+  let n = Number(s);
   if (!isAllowedScore(n)) return null;
+  n = Math.round(n*100)/100;
 
   // تحويل المتوسط إلى الأداء الفعلي حسب المطلوب:
   // 1.5 => 4 (عالي) | 2.5 => 3 (متوقع) | 3.5 => 3 (متوقع) | 4.5 => 2 (منخفض)
@@ -373,8 +376,8 @@ function makeRow(item){
   const c2 = document.createElement("div");
   c2.className = "cell centerTxt";
   const inp = document.createElement("input");
-  inp.type="number"; inp.min="1"; inp.max="5"; inp.step="0.5";
-  inp.placeholder="مثال: 2 أو 3.5";
+  inp.type="number"; inp.min="1"; inp.max="5"; inp.step="0.01";
+  inp.placeholder="مثال: 2.34 أو 3.5";
   inp.dataset.id = String(item.id);
   c2.appendChild(inp);
 
@@ -387,6 +390,12 @@ function makeRow(item){
   inp.addEventListener("input", ()=>{
     const cleaned = normalizeNumberInput(inp.value);
     if (cleaned !== inp.value) inp.value = cleaned;
+
+    // حد أقصى رقمين بعد الفاصلة أثناء الإدخال
+    if (inp.value.includes(".")) {
+      const [a,b] = inp.value.split(".");
+      if (b && b.length > 2) inp.value = a + "." + b.slice(0,2);
+    }
 
     if (inp.value === "") {
       c3.textContent = "—";
